@@ -1,0 +1,3 @@
+# Small synthetic fixtures (one month, four stations) land here with
+# the first method PR; they let the unit and integration tests run
+# without AWA_DATA_ROOT pointing at real data.

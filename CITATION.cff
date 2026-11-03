@@ -1,0 +1,74 @@
+cff-version: 1.2.0
+title: "Austrian Windatlas"
+message: >-
+  If you use this software, please cite both the software (this CITATION
+  file) and the companion paper (Schicker et al., 2026) listed under
+  `preferred-citation`.
+type: software
+authors:
+  - family-names: Schicker
+    given-names: Irene
+    affiliation: GeoSphere Austria
+    orcid: "https://orcid.org/0000-0001-6401-2412"
+    email: irene.schicker@geosphere.at
+  - family-names: Andre
+    given-names: Konrad
+    affiliation: GeoSphere Austria
+  - family-names: Lexer
+    given-names: Annemarie
+    affiliation: GeoSphere Austria
+  - family-names: Janisch
+    given-names: Stefan
+    affiliation: 4ward Energy Research GmbH
+  - family-names: Bisko
+    given-names: Nina
+    affiliation: 4ward Energy Research GmbH
+repository-code: "https://github.com/ischicker/austrianwindatlas"
+license: MIT
+version: 0.1.0
+date-released: "2026-11-03"
+keywords:
+  - wind climatology
+  - wind atlas
+  - Alpine terrain
+  - wind energy
+  - spatial interpolation
+  - hub-height extrapolation
+  - Austria
+  - observation-constrained
+  - EOF
+  - rPCA
+preferred-citation:
+  type: article
+  title: >-
+    The Austrian Windatlas: An Observation-Constrained Wind Climatology
+    from Near-Surface to Turbine Hub Heights in Complex Alpine Terrain
+  authors:
+    - family-names: Schicker
+      given-names: Irene
+    - family-names: Andre
+      given-names: Konrad
+    - family-names: Lexer
+      given-names: Annemarie
+    - family-names: Janisch
+      given-names: Stefan
+    - family-names: Bisko
+      given-names: Nina
+  journal: Climate
+  publisher:
+    name: MDPI
+  year: 2026
+  notes: "MS 4613178; DOI assigned on publication."
+references:
+  - type: article
+    title: >-
+      A novel approach to statistical downscaling considering nonstationarities:
+      application to daily precipitation in the Mediterranean area
+    authors:
+      - family-names: Amato
+        given-names: Federico
+    year: 2020
+    notes: >-
+      The Amato-family Stage-1 interpolation module in this library is a
+      modified derivative of https://github.com/federhub/ST_DeepLearning
+      and is distributed only once an upstream licence is in place.

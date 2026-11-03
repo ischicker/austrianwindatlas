@@ -1,0 +1,3 @@
+# Shipped YAML configurations for the production LOYO run, the Stage-2
+# batch, the full validation harness. Added one at a time with each
+# method PR.

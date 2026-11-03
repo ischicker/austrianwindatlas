@@ -1,0 +1,63 @@
+Austrian Windatlas library
+Copyright (c) 2026 GeoSphere Austria and the Austrian Windatlas contributors
+Licensed under the MIT License (see LICENSE).
+
+This project ships the following third-party components under their own
+terms. Nothing in the top-level MIT licence overrides the licences
+listed below.
+
+=============================================================================
+BAMLSS R package (`bamlss`)
+    Nikolaus Umlauf, Nadja Klein, Achim Zeileis and others
+    https://CRAN.R-project.org/package=bamlss
+    Licence: GPL-2.0 | GPL-3.0 (dual).
+    Role: invoked via subprocess from `austrianwindatlas.stage1.gam_bamlss`;
+    the R script `R/bamlss_rpca_eof.R` is itself MIT (our code), but it
+    runs under R and loads bamlss at runtime. Users of the GAM+ERA5
+    configuration therefore need an R installation with bamlss available
+    on CRAN or a bundled Docker image.
+
+mgcv R package
+    Simon N. Wood
+    https://CRAN.R-project.org/package=mgcv
+    Licence: GPL-2.0 | GPL-3.0 (dual).
+    Role: used by `R/gam_rpca_eof.R` as the fast alternative to the
+    BAMLSS MCMC path. Same runtime-only dependency comment as above.
+
+=============================================================================
+Pending-licence components (NOT shipped; see docs/amato.md)
+
+Amato et al. (2020) spatio-temporal deep-learning framework
+    Federico Amato and collaborators
+    Upstream repository: https://github.com/federhub/ST_DeepLearning
+    Licence: not declared (upstream file absent). We therefore cannot
+    redistribute the Amato family (`src/austrianwindatlas/stage1/amato/`).
+    A permission request has been sent; until it is resolved, this
+    module is a stub that raises `NotImplementedError` and points the
+    user to the upstream repository. See docs/amato.md.
+
+=============================================================================
+Datasets referenced in the examples (not redistributed)
+
+- TAWES open-data climate observations (GeoSphere Austria)
+    https://data.hub.geosphere.at/dataset/klima-v2-10min
+    Licence: Creative Commons CC-BY-4.0 (per GeoSphere Open Data terms).
+    Role: real-station example data for the quickstart. Not bundled;
+    the quickstart downloads a small subset at runtime.
+
+- EU-DEM v1.1
+    https://land.copernicus.eu/imagery-in-situ/eu-dem/eu-dem-v1.1
+    Licence: Copernicus Open Access (Reg. (EU) No 1159/2013).
+    Role: 1 km DEM for the Austria grid. Not bundled; downloaded by
+    the quickstart.
+
+- CORINE Land Cover 2018
+    https://land.copernicus.eu/pan-european/corine-land-cover/clc2018
+    Licence: Copernicus Open Access (Reg. (EU) No 1159/2013).
+    Role: aerodynamic roughness z0 derivation. Not bundled.
+
+- NEWA (New European Wind Atlas)
+    https://map.neweuropeanwindatlas.eu
+    Licence: as per NEWA terms of use.
+    Role: hub-height benchmark; fetched via the WPS API in
+    `austrianwindatlas.io.newa`.

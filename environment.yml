@@ -1,0 +1,45 @@
+name: austrianwindatlas
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  # Python runtime
+  - python>=3.10,<3.13
+  - pip
+
+  # Scientific core
+  - numpy>=1.24,<3
+  - pandas>=2.0,<3
+  - xarray>=2023.6
+  - netCDF4>=1.6
+  - pyproj>=3.5
+  - rasterio>=1.3
+  - scikit-learn>=1.3
+  - scipy>=1.11
+  - pyyaml>=6.0
+  - requests>=2.31
+
+  # DL stack (CPU; the GPU extra ships CuPy separately via pip)
+  - pytorch>=2.1
+
+  # Visualisation (used by the examples)
+  - matplotlib>=3.7
+  - cartopy>=0.22
+
+  # R + packages used by the GAM / BAMLSS Stage-1 families
+  - r-base>=4.3
+  - r-optparse
+  - r-mgcv
+  - r-bamlss
+  - r-ncdf4
+  - r-raster
+  - r-dplyr
+
+  # Dev tooling
+  - pytest>=7.4
+  - pytest-cov>=4.1
+  - ruff>=0.4
+  - mypy>=1.7
+
+  - pip:
+      - -e .

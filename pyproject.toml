@@ -104,7 +104,14 @@ src = ["src", "tests", "examples"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "SIM", "N"]
-ignore = ["E501"]  # line length handled by formatter / line-length above
+ignore = [
+    "E501",  # line length handled by formatter / line-length above
+    "N803",  # argument name should be lowercase — uppercase M/L/S/U/V/X is
+             # standard math convention in linear-algebra code (sklearn,
+             # scipy and numpy all use it); the readability win is on the
+             # math side here, not on the PEP8 side.
+    "N806",  # variable in function should be lowercase — same reason.
+]
 
 [tool.pytest.ini_options]
 minversion = "7.0"

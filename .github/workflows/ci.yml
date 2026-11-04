@@ -36,10 +36,13 @@ jobs:
           pip install -e ".[dev]"
 
       - name: Ruff lint
-        run: ruff check src tests
+        run: ruff check src tests examples
 
       - name: Pytest (unit)
         run: pytest tests/unit -q
 
       - name: Smoke import
         run: python -c "import austrianwindatlas as awa; print(awa.__version__)"
+
+      - name: Run the end-to-end synthetic example
+        run: python examples/01_synthetic_end_to_end.py

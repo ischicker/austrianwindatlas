@@ -1,5 +1,7 @@
 # Austrian Windatlas
 
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ischicker/austrianwindatlas/blob/main/notebooks/01_synthetic_end_to_end.ipynb)
+
 Observation-constrained hourly wind climatology for Austria —
 reference implementation and companion library to Schicker et al.
 (2026, *Climate*, MS 4613178).
@@ -37,6 +39,18 @@ available via `docker build -t austrianwindatlas .`
 ```bash
 python -c "import austrianwindatlas as awa; print(awa.__version__)"
 ```
+
+## Try it in Colab (no install)
+
+The [`notebooks/`](notebooks/) directory has a small end-to-end demo
+that runs in ~3 seconds on a free-tier CPU and exercises the full
+Stage-1 chain (rPCA → EOF interpolation → reconstruction) on fully
+synthetic data.  Click the **Open in Colab** badge at the top of this
+README to launch it directly — no local Python or data required.
+
+The notebooks are derived from the scripts under `examples/`; see
+`notebooks/build_notebooks.py` for the one-liner that rebuilds them
+(edit the `.py`, rerun the builder, never hand-edit the `.ipynb`).
 
 ## Data
 

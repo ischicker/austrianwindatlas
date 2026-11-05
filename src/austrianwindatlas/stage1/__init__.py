@@ -11,15 +11,23 @@ Currently ported:
   that combines the spatial mean, interpolated EOF loadings and
   temporal coefficients into hourly wind fields, with optional
   ERA5 / CERRA background blending.
+- :mod:`austrianwindatlas.stage1.enhanced_mae` — DL variant that
+  predicts station-side EOF loadings from terrain covariates with
+  configurable loss (MSE / MAE / asymmetric / focal / weighted-*),
+  per the Enhanced-MAE / Enhanced-WMSE methods in Schicker et al.
+  (2026).  Re-exported as a sub-package to keep its internal API
+  (``LossFunction``, ``TrainConfig``, ``predict_grid`` etc.) off
+  the top-level ``stage1`` namespace where it would collide with
+  the pure-rPCA :mod:`.reconstruct` helpers.
 
 Pending (one per PR; see ``AWA_TRANSITION.md``):
 
-- ``austrianwindatlas.stage1.{enhanced_mae,qn_gnn,temporal_cnn}`` —
-  the three deep-learning families.
+- ``austrianwindatlas.stage1.{qn_gnn,temporal_cnn}`` — the remaining
+  deep-learning families.
 - ``austrianwindatlas.stage1.amato`` — stub pending upstream
   licence (see ``docs/amato.md``).
 """
-from austrianwindatlas.stage1 import gam_bamlss, reconstruct, rpca_eof
+from austrianwindatlas.stage1 import enhanced_mae, gam_bamlss, reconstruct, rpca_eof
 from austrianwindatlas.stage1.gam_bamlss import (
     RExportInputs,
     RScriptResult,
@@ -70,4 +78,6 @@ __all__ = [
     "project_onto_eofs",
     "reconstruct_series",
     "reconstruct_timestep",
+    # enhanced_mae (sub-package only; access via `stage1.enhanced_mae.*`)
+    "enhanced_mae",
 ]

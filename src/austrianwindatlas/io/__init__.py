@@ -5,6 +5,14 @@ here for convenience.
 """
 from __future__ import annotations
 
+from .background import (
+    DEFAULT_CERRA_PATTERNS,
+    DEFAULT_ERA5_PATTERNS,
+    BackgroundField,
+    load_cerra_background,
+    load_era5_background,
+    regrid_to_inca,
+)
 from .netcdf import (
     add_latlon_variables,
     compute_latlon_grid,
@@ -26,6 +34,13 @@ from .stations import (
 from .windfield import INCA_GRID, GridSpec, build_wind_field_dataset, write_wind_field_netcdf
 
 __all__ = [
+    # background
+    "BackgroundField",
+    "DEFAULT_CERRA_PATTERNS",
+    "DEFAULT_ERA5_PATTERNS",
+    "load_cerra_background",
+    "load_era5_background",
+    "regrid_to_inca",
     # netcdf
     "add_latlon_variables",
     "compute_latlon_grid",

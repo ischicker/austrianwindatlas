@@ -28,6 +28,11 @@ Submodules:
 from __future__ import annotations
 
 from . import temporal_cnn
+from .calibrator import (
+    AsymmetricCalibrator,
+    ElevationBiasCorrector,
+    SpatialWindCalibrator,
+)
 from .graph import StationGraph, build_station_graph
 from .losses import (
     DirectionalLossKind,
@@ -39,6 +44,7 @@ from .losses import (
 )
 from .model import TerrainGNN, build_terrain_gnn
 from .predict import predict_grid, spatial_bias_map, variance_correct
+from .reconstruct import CalibratorLike, CNNMode, compute_cnn_U, reconstruct_month
 from .svd import ZScoreSVD, compute_zscore_svd
 from .train import EpochRecord, TrainConfig, TrainResult, train_gnn
 from .zscore import StationWiseZScoreTransformer
@@ -71,6 +77,15 @@ __all__ = [
     "predict_grid",
     "spatial_bias_map",
     "variance_correct",
+    # calibrator
+    "SpatialWindCalibrator",
+    "AsymmetricCalibrator",
+    "ElevationBiasCorrector",
+    # reconstruct
+    "CalibratorLike",
+    "CNNMode",
+    "compute_cnn_U",
+    "reconstruct_month",
     # temporal_cnn sub-package (access via `stage1.qn_gnn.temporal_cnn.*`)
     "temporal_cnn",
 ]

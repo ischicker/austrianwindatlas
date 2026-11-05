@@ -22,9 +22,12 @@ Submodules:
 * :mod:`.train`  — :class:`TrainConfig`, :func:`train_gnn`
 * :mod:`.predict`— :func:`predict_grid`, :func:`spatial_bias_map`,
   :func:`variance_correct`
+* :mod:`.temporal_cnn` — Stage-2 Temporal CNN that predicts a
+  per-timestep ``ΔU`` correction (see sub-package docstring).
 """
 from __future__ import annotations
 
+from . import temporal_cnn
 from .graph import StationGraph, build_station_graph
 from .losses import (
     DirectionalLossKind,
@@ -68,4 +71,6 @@ __all__ = [
     "predict_grid",
     "spatial_bias_map",
     "variance_correct",
+    # temporal_cnn sub-package (access via `stage1.qn_gnn.temporal_cnn.*`)
+    "temporal_cnn",
 ]

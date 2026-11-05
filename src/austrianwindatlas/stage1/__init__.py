@@ -19,15 +19,21 @@ Currently ported:
   (``LossFunction``, ``TrainConfig``, ``predict_grid`` etc.) off
   the top-level ``stage1`` namespace where it would collide with
   the pure-rPCA :mod:`.reconstruct` helpers.
+- :mod:`austrianwindatlas.stage1.qn_gnn` — the QN-GNN method:
+  per-station z-score normalisation, terrain-aware KNN graph with
+  ridge-height penalty, GAT attention + MLP dual path, spatial
+  validation holdout.  Ships training + grid prediction.  The
+  Temporal CNN refinement and the production reconstruction glue
+  (ERA5 / CERRA blending, calibrator ``z → m/s``) land in later PRs.
 
 Pending (one per PR; see ``AWA_TRANSITION.md``):
 
-- ``austrianwindatlas.stage1.{qn_gnn,temporal_cnn}`` — the remaining
-  deep-learning families.
+- ``austrianwindatlas.stage1.qn_gnn.temporal_cnn`` + reconstruction
+  glue — PR#9b / #9c.
 - ``austrianwindatlas.stage1.amato`` — stub pending upstream
   licence (see ``docs/amato.md``).
 """
-from austrianwindatlas.stage1 import enhanced_mae, gam_bamlss, reconstruct, rpca_eof
+from austrianwindatlas.stage1 import enhanced_mae, gam_bamlss, qn_gnn, reconstruct, rpca_eof
 from austrianwindatlas.stage1.gam_bamlss import (
     RExportInputs,
     RScriptResult,
@@ -80,4 +86,6 @@ __all__ = [
     "reconstruct_timestep",
     # enhanced_mae (sub-package only; access via `stage1.enhanced_mae.*`)
     "enhanced_mae",
+    # qn_gnn (sub-package only; access via `stage1.qn_gnn.*`)
+    "qn_gnn",
 ]

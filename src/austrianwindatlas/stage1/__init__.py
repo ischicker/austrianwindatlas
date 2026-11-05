@@ -26,14 +26,21 @@ Currently ported:
   Temporal CNN refinement and the production reconstruction glue
   (ERA5 / CERRA blending, calibrator ``z → m/s``) land in later PRs.
 
-Pending (one per PR; see ``AWA_TRANSITION.md``):
-
-- ``austrianwindatlas.stage1.qn_gnn.temporal_cnn`` + reconstruction
-  glue — PR#9b / #9c.
-- ``austrianwindatlas.stage1.amato`` — stub pending upstream
-  licence (see ``docs/amato.md``).
+- :mod:`austrianwindatlas.stage1.amato` — **stub** pending upstream
+  licence (<https://github.com/federhub/ST_DeepLearning> has no
+  declared licence).  The sub-package is importable and introspectable
+  (``amato.AMATO_STATUS``, ``amato.AMATO_UPSTREAM_URL``) but every
+  callable raises :class:`~.amato.AmatoUnavailableError`.  See
+  :doc:`docs/amato.md` and use :mod:`~.enhanced_mae` instead.
 """
-from austrianwindatlas.stage1 import enhanced_mae, gam_bamlss, qn_gnn, reconstruct, rpca_eof
+from austrianwindatlas.stage1 import (
+    amato,
+    enhanced_mae,
+    gam_bamlss,
+    qn_gnn,
+    reconstruct,
+    rpca_eof,
+)
 from austrianwindatlas.stage1.gam_bamlss import (
     RExportInputs,
     RScriptResult,
@@ -88,4 +95,6 @@ __all__ = [
     "enhanced_mae",
     # qn_gnn (sub-package only; access via `stage1.qn_gnn.*`)
     "qn_gnn",
+    # amato (stub sub-package; see docs/amato.md)
+    "amato",
 ]

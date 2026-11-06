@@ -13,6 +13,13 @@ from .background import (
     load_era5_background,
     regrid_to_inca,
 )
+from .geosphere import (
+    DEFAULT_CACHE_DIR,
+    KLIMA_V2_1H_URL,
+    KlimaQuery,
+    cache_dir,
+    fetch_klima_v2_1h,
+)
 from .netcdf import (
     add_latlon_variables,
     compute_latlon_grid,
@@ -41,6 +48,12 @@ __all__ = [
     "load_cerra_background",
     "load_era5_background",
     "regrid_to_inca",
+    # geosphere open-data downloader
+    "DEFAULT_CACHE_DIR",
+    "KLIMA_V2_1H_URL",
+    "KlimaQuery",
+    "cache_dir",
+    "fetch_klima_v2_1h",
     # netcdf
     "add_latlon_variables",
     "compute_latlon_grid",

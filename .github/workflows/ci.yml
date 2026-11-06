@@ -53,6 +53,15 @@ jobs:
       - name: Run Stage-2 extrapolation demo (03)
         run: python examples/03_stage2_extrapolation_demo.py
 
+      - name: Run real-TAWES verification demo (04, warm cache, offline)
+        env:
+          XDG_CACHE_HOME: ${{ runner.temp }}/awa-xdg
+        run: |
+          mkdir -p "$XDG_CACHE_HOME/austrianwindatlas"
+          cp tests/fixtures/klima_cache/klima_v2_1h_*.csv "$XDG_CACHE_HOME/austrianwindatlas/"
+          pip install -q matplotlib
+          python examples/04_reproduce_fig3_tawes_open.py --no-download
+
       - name: Check notebooks are in sync with their source scripts
         run: |
           pip install -q nbformat

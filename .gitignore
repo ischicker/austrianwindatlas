@@ -27,6 +27,9 @@ env/
 /awa_data/
 /data/
 
+# Example-script output (figures, scratch NetCDFs)
+examples_output/
+
 # Docs build output
 site/
 

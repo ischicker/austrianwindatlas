@@ -22,6 +22,24 @@ Keep ``.zenodo.json``, ``CITATION.cff`` and ``NOTICE`` in sync.  The
 test ``tests/unit/test_citation_metadata.py`` catches drift between
 the CFF and ``.zenodo.json`` author lists.
 
+### Community membership (``windatlas_at``)
+
+Each release auto-joins the Zenodo **windatlas_at** community
+(<https://zenodo.org/communities/windatlas_at>).  The slug is baked
+into ``.zenodo.json`` under the ``communities`` key.
+
+* If the submitter is a **curator** of the community, the record is
+  auto-approved at mint time and appears in the community listing
+  immediately.
+* If the submitter is only a **member**, Zenodo mints the DOI as
+  usual (the DOI is final from the start) and notifies curators of
+  a pending inclusion request.  The record only shows up in the
+  community after a curator clicks **Accept** on the request.
+
+To add or remove communities, edit ``.zenodo.json`` under
+``communities`` *and* update the hard-coded slug check in
+``tests/unit/test_citation_metadata.py`` in the same commit.
+
 ## Per-release checklist
 
 ### Phase A — pre-tag preparation (one commit)

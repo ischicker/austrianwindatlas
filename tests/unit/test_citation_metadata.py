@@ -117,6 +117,32 @@ def test_license_is_mit_everywhere(cff, zen):
 
 
 # ---------------------------------------------------------------------------
+# Community membership — windatlas_at auto-joins on mint
+# ---------------------------------------------------------------------------
+def test_zenodo_lists_at_least_one_community(zen):
+    communities = zen.get("communities") or []
+    assert communities, (
+        "No .zenodo.json communities configured. Zenodo will still mint a "
+        "DOI, but the record will not auto-join any collection — see "
+        "docs/RELEASING.md."
+    )
+    for entry in communities:
+        slug = entry.get("identifier", "")
+        assert slug, f"Empty community identifier in .zenodo.json: {entry!r}"
+
+
+def test_zenodo_includes_the_windatlas_at_community(zen):
+    """Hard-code the expected slug.  If the community is renamed on
+    Zenodo, this test fires and the maintainer updates both the slug
+    here and in .zenodo.json in the same commit.
+    """
+    slugs = [c.get("identifier") for c in (zen.get("communities") or [])]
+    assert "windatlas_at" in slugs, (
+        f"windatlas_at missing from .zenodo.json communities (got {slugs!r})."
+    )
+
+
+# ---------------------------------------------------------------------------
 # DOI consistency
 # ---------------------------------------------------------------------------
 def _collect_dois(cff: dict, readme: str, notice: str) -> set[str]:

@@ -27,6 +27,9 @@
   ],
   "license": "MIT",
   "access_right": "open",
+  "communities": [
+    {"identifier": "windatlas_at"}
+  ],
   "keywords": [
     "wind climatology",
     "wind atlas",

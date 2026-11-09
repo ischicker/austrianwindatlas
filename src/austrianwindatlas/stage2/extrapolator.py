@@ -21,9 +21,10 @@ many months and only the ensemble is needed on disk.
 """
 from __future__ import annotations
 
+import contextlib
 import logging
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 
@@ -45,7 +46,16 @@ from .roughness import RoughnessFields, derive_roughness_fields
 if TYPE_CHECKING:  # pragma: no cover
     from numpy.typing import NDArray
 
+try:
+    import cupy as _cp
+
+    HAS_CUPY: bool = True
+except ImportError:  # pragma: no cover — environment-gated
+    _cp = None  # type: ignore[assignment]
+    HAS_CUPY = False
+
 __all__ = [
+    "HAS_CUPY",
     "METHOD_NAMES",
     "ExtrapolationConfig",
     "MultiHeightExtrapolator",
@@ -97,6 +107,12 @@ class ExtrapolationConfig:
     max_wind_speed: float = 50.0
     min_wind_speed: float = 0.05
 
+    # GPU dispatch.  When :data:`True` and cupy is importable, the
+    # per-method arithmetic runs on-device; the input is moved once
+    # and every height is batched on the same device.  Silently
+    # falls back on cupy ImportError or on CUDA runtime errors.
+    use_gpu: bool = False
+
 
 @dataclass
 class MultiHeightExtrapolator:
@@ -131,13 +147,17 @@ class MultiHeightExtrapolator:
             cfg.target_heights = tuple(target_heights)
         return cls(roughness=fields, config=cfg)
 
-    def _quality_control(self, wind_10m: NDArray[np.floating]) -> NDArray[np.float32]:
+    def _quality_control(
+        self, wind_10m: NDArray[np.floating], *, xp: Any = np,
+    ) -> NDArray[np.float32]:
         """Replace Inf / out-of-range with NaN; clamp tiny positives to the floor.
 
-        Matches ``FastGPUExtrapolator._extrapolate_cpu``'s QC.
+        Matches ``FastGPUExtrapolator._extrapolate_cpu``'s QC.  Works on
+        both numpy and cupy arrays — the only ``xp``-specific calls are
+        ``xp.asarray`` and ``xp.isinf``; the rest is broadcast arithmetic.
         """
-        arr = np.asarray(wind_10m, dtype=np.float32).copy()
-        arr[np.isinf(arr)] = np.nan
+        arr = xp.asarray(wind_10m, dtype=np.float32).copy()
+        arr[xp.isinf(arr)] = np.nan
         arr[arr > self.config.max_wind_speed] = np.nan
         tiny = (arr > 0) & (arr < self.config.min_wind_speed)
         arr[tiny] = self.config.min_wind_speed
@@ -154,6 +174,24 @@ class MultiHeightExtrapolator:
                 f"roughness shape {self.roughness.shape!r}"
             )
 
+    def _resolve_backend(self) -> tuple[Any, bool]:
+        """Decide whether to run on GPU and return ``(xp, on_gpu)``.
+
+        Honours :attr:`ExtrapolationConfig.use_gpu` but falls back on
+        the CPU path if cupy is missing.  A warning is logged so the
+        fallback is visible in production logs.
+        """
+        if not self.config.use_gpu:
+            return np, False
+        if not HAS_CUPY:
+            logger.warning(
+                "stage2.extrapolator: use_gpu=True but cupy is not installed; "
+                "falling back to numpy.  Install the gpu extra to enable "
+                "GPU dispatch."
+            )
+            return np, False
+        return _cp, True
+
     def extrapolate(
         self,
         wind_10m: NDArray[np.floating],
@@ -161,92 +199,138 @@ class MultiHeightExtrapolator:
         """Compute every enabled method at every target height.
 
         Returns a nested dict ``result[height][method]`` with values
-        of shape ``(T, ny, nx)``, dtype ``float32``.  ``method`` keys
-        appear in the order listed by :data:`METHOD_NAMES` and only
-        for methods actually enabled by the config.
+        of shape ``(T, ny, nx)``, dtype ``float32`` (always on host —
+        even when :attr:`ExtrapolationConfig.use_gpu` is :data:`True`
+        the results are copied back to host before return).
+        ``method`` keys appear in the order listed by :data:`METHOD_NAMES`
+        and only for methods actually enabled by the config.
         """
         self._check_shape(wind_10m)
-        wind = self._quality_control(wind_10m)
 
-        all_results: dict[float, dict[str, NDArray[np.float32]]] = {}
+        xp, on_gpu = self._resolve_backend()
+        if on_gpu:
+            try:
+                return self._extrapolate_impl(wind_10m, xp=xp, on_gpu=True)
+            except Exception as exc:  # noqa: BLE001 — any GPU error → CPU retry
+                logger.warning(
+                    "stage2.extrapolator: GPU path failed (%s); retrying on CPU.",
+                    exc,
+                )
+                # Release device buffers before the CPU retry.
+                with contextlib.suppress(Exception):  # pragma: no cover
+                    _cp.get_default_memory_pool().free_all_blocks()
+                return self._extrapolate_impl(wind_10m, xp=np, on_gpu=False)
+        return self._extrapolate_impl(wind_10m, xp=xp, on_gpu=False)
+
+    def _extrapolate_impl(
+        self,
+        wind_10m: NDArray[np.floating],
+        *,
+        xp: Any,
+        on_gpu: bool,
+    ) -> dict[float, dict[str, NDArray[np.float32]]]:
+        """Shared batched loop over target heights.  CPU and GPU share
+        this code path — only ``xp`` differs."""
+        wind = self._quality_control(wind_10m, xp=xp)
+
         cfg = self.config
         rf = self.roughness
         h_ref = cfg.reference_height
 
+        # Move roughness fields to the same device as ``wind``.
+        rf_alpha = xp.asarray(rf.alpha)
+        rf_z0 = xp.asarray(rf.z0)
+        rf_h_ref = xp.asarray(rf.h_ref)
+        rf_smooth = xp.asarray(rf.smooth)
+        rf_moderate = xp.asarray(rf.moderate)
+        rf_rough = xp.asarray(rf.rough)
+
+        all_results: dict[float, dict[str, NDArray[np.float32]]] = {}
+
         for height in cfg.target_heights:
-            results: dict[str, NDArray[np.float32]] = {}
-            stack: list[NDArray[np.float32]] = []
+            results_on_device: dict[str, Any] = {}
+            stack: list[Any] = []
 
             if cfg.use_classic_power_law:
                 r = classic_power_law(
                     wind, height, alpha=cfg.classic_alpha,
-                    reference_height=h_ref, max_wind=cfg.max_wind,
+                    reference_height=h_ref, max_wind=cfg.max_wind, xp=xp,
                 )
-                results["power_law"] = r
+                results_on_device["power_law"] = r
                 stack.append(r)
 
             if cfg.use_classic_log_law:
                 r = classic_log_law(
                     wind, height, z0=cfg.classic_z0,
-                    reference_height=h_ref, max_wind=cfg.max_wind,
+                    reference_height=h_ref, max_wind=cfg.max_wind, xp=xp,
                 )
-                results["log_law"] = r
+                results_on_device["log_law"] = r
                 stack.append(r)
 
             if cfg.use_enhanced_power_law:
                 r = enhanced_power_law(
-                    wind, height, rf.alpha,
-                    reference_height=h_ref, max_wind=cfg.max_wind,
+                    wind, height, rf_alpha,
+                    reference_height=h_ref, max_wind=cfg.max_wind, xp=xp,
                 )
-                results["enhanced_power"] = r
+                results_on_device["enhanced_power"] = r
                 stack.append(r)
 
             if cfg.use_enhanced_log_law:
                 r = enhanced_log_law(
-                    wind, height, rf.z0, rf.h_ref,
-                    max_wind=cfg.max_wind,
+                    wind, height, rf_z0, rf_h_ref,
+                    max_wind=cfg.max_wind, xp=xp,
                 )
-                results["enhanced_log"] = r
+                results_on_device["enhanced_log"] = r
                 stack.append(r)
 
             if cfg.use_stability_dependent:
                 r = stability_dependent(
                     wind, height, reference_height=h_ref,
-                    max_wind=cfg.max_wind,
+                    max_wind=cfg.max_wind, xp=xp,
                 )
-                results["stability"] = r
+                results_on_device["stability"] = r
                 stack.append(r)
 
-            have_both_enhanced = "enhanced_log" in results and "enhanced_power" in results
+            have_both_enhanced = (
+                "enhanced_log" in results_on_device
+                and "enhanced_power" in results_on_device
+            )
             if cfg.use_roughness_adaptive and have_both_enhanced:
                 r = roughness_adaptive(
                     wind, height,
-                    enhanced_log=results["enhanced_log"],
-                    enhanced_power=results["enhanced_power"],
-                    smooth_mask=rf.smooth,
-                    moderate_mask=rf.moderate,
-                    rough_mask=rf.rough,
+                    enhanced_log=results_on_device["enhanced_log"],
+                    enhanced_power=results_on_device["enhanced_power"],
+                    smooth_mask=rf_smooth,
+                    moderate_mask=rf_moderate,
+                    rough_mask=rf_rough,
                     rough_alpha=cfg.rough_alpha,
-                    reference_height=h_ref, max_wind=cfg.max_wind,
+                    reference_height=h_ref, max_wind=cfg.max_wind, xp=xp,
                 )
-                results["adaptive"] = r
+                results_on_device["adaptive"] = r
                 stack.append(r)
 
             if cfg.use_hybrid and have_both_enhanced:
                 r = hybrid_power_log(
                     wind,
-                    enhanced_log=results["enhanced_log"],
-                    enhanced_power=results["enhanced_power"],
-                    z0=rf.z0,
-                    max_wind=cfg.max_wind,
+                    enhanced_log=results_on_device["enhanced_log"],
+                    enhanced_power=results_on_device["enhanced_power"],
+                    z0=rf_z0,
+                    max_wind=cfg.max_wind, xp=xp,
                 )
-                results["hybrid"] = r
+                results_on_device["hybrid"] = r
                 stack.append(r)
 
             if cfg.compute_ensemble and len(stack) >= 2:
-                stacked = np.stack(stack, axis=0)
-                results["ensemble"] = np.nanmean(stacked, axis=0).astype(np.float32)
+                stacked = xp.stack(stack, axis=0)
+                results_on_device["ensemble"] = (
+                    xp.nanmean(stacked, axis=0).astype(np.float32)
+                )
 
-            all_results[float(height)] = results
+            # Move everything back to host — the public API promises
+            # numpy arrays, not device arrays.
+            all_results[float(height)] = {
+                name: (arr.get() if on_gpu and hasattr(arr, "get") else np.asarray(arr))
+                for name, arr in results_on_device.items()
+            }
 
         return all_results

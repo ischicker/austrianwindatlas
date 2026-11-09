@@ -66,9 +66,24 @@ DEFAULT_REFERENCE_HEIGHT: float = 10.0
 DEFAULT_MAX_WIND: float = 100.0
 
 
-def _finalise(wind: NDArray[np.floating], *, max_wind: float) -> NDArray[np.float32]:
-    """Clip at ``[0, max_wind]`` and cast to ``float32``."""
-    return np.clip(wind, 0.0, max_wind).astype(np.float32, copy=False)
+def _resolve_xp(xp):  # noqa: ANN001 — module-like duck
+    """Return the array-namespace module for use in formulations.
+
+    ``xp=None`` → :mod:`numpy`.  Any other object is returned as-is
+    (typically :mod:`cupy`).  Lets every formulation accept
+    ``xp=`` without a per-call import cost.
+    """
+    return np if xp is None else xp
+
+
+def _finalise(wind, *, max_wind: float, xp=None):  # noqa: ANN001
+    """Clip at ``[0, max_wind]`` and cast to ``float32``.
+
+    Works with both numpy and cupy arrays — ``cupy.clip`` + ``.astype``
+    have identical signatures to numpy's.
+    """
+    xp = _resolve_xp(xp)
+    return xp.clip(wind, 0.0, max_wind).astype(np.float32, copy=False)
 
 
 # ---------------------------------------------------------------------------
@@ -81,14 +96,21 @@ def classic_power_law(
     alpha: float = DEFAULT_CLASSIC_ALPHA,
     reference_height: float = DEFAULT_REFERENCE_HEIGHT,
     max_wind: float = DEFAULT_MAX_WIND,
+    xp=None,  # noqa: ANN001
 ) -> NDArray[np.float32]:
     """``wind(h) = wind_10m * (h / h_ref) ** alpha``.
 
     The oldest and simplest of the seven.  No spatial variation.
+
+    ``xp`` may be set to :mod:`cupy` (etc.) to run the arithmetic on
+    an alternate array namespace; when :data:`None` (default) the
+    function behaves exactly as before.  ``wind_10m`` must already
+    live on ``xp``'s device.
     """
+    xp_mod = _resolve_xp(xp)
     ratio = float(target_height) / float(reference_height)
-    return _finalise(np.asarray(wind_10m, dtype=float) * (ratio ** float(alpha)),
-                     max_wind=max_wind)
+    return _finalise(xp_mod.asarray(wind_10m, dtype=float) * (ratio ** float(alpha)),
+                     max_wind=max_wind, xp=xp_mod)
 
 
 # ---------------------------------------------------------------------------
@@ -101,14 +123,21 @@ def classic_log_law(
     z0: float = DEFAULT_CLASSIC_Z0,
     reference_height: float = DEFAULT_REFERENCE_HEIGHT,
     max_wind: float = DEFAULT_MAX_WIND,
+    xp=None,  # noqa: ANN001
 ) -> NDArray[np.float32]:
     """``wind(h) = wind_10m * log(h / z0) / log(h_ref / z0)``.
 
     Fixed open-country ``z0=0.1`` m.  Works well at airports, poorly
     over Alpine terrain.
     """
-    coeff = np.log(float(target_height) / float(z0)) / np.log(float(reference_height) / float(z0))
-    return _finalise(np.asarray(wind_10m, dtype=float) * coeff, max_wind=max_wind)
+    xp_mod = _resolve_xp(xp)
+    # Coefficient is a scalar — compute on host and multiply on-device.
+    coeff = float(
+        np.log(float(target_height) / float(z0))
+        / np.log(float(reference_height) / float(z0))
+    )
+    return _finalise(xp_mod.asarray(wind_10m, dtype=float) * coeff,
+                     max_wind=max_wind, xp=xp_mod)
 
 
 # ---------------------------------------------------------------------------
@@ -121,6 +150,7 @@ def enhanced_power_law(
     *,
     reference_height: float = DEFAULT_REFERENCE_HEIGHT,
     max_wind: float = DEFAULT_MAX_WIND,
+    xp=None,  # noqa: ANN001
 ) -> NDArray[np.float32]:
     """``wind(h) = wind_10m * (h / h_ref) ** alpha(x, y)``.
 
@@ -130,11 +160,12 @@ def enhanced_power_law(
     :func:`austrianwindatlas.stage2.roughness.roughness_alpha` for the
     paper's canonical ``alpha(x, y)``.
     """
-    wind = np.asarray(wind_10m, dtype=float)
-    alpha_arr = np.asarray(alpha, dtype=float)
+    xp_mod = _resolve_xp(xp)
+    wind = xp_mod.asarray(wind_10m, dtype=float)
+    alpha_arr = xp_mod.asarray(alpha, dtype=float)
     ratio = float(target_height) / float(reference_height)
-    out = wind * np.power(ratio, alpha_arr)
-    return _finalise(out, max_wind=max_wind)
+    out = wind * xp_mod.power(ratio, alpha_arr)
+    return _finalise(out, max_wind=max_wind, xp=xp_mod)
 
 
 # ---------------------------------------------------------------------------
@@ -149,6 +180,7 @@ def enhanced_log_law(
     min_coeff: float = 0.5,
     max_coeff: float = 3.0,
     max_wind: float = DEFAULT_MAX_WIND,
+    xp=None,  # noqa: ANN001
 ) -> NDArray[np.float32]:
     """``wind(h) = wind_10m * log(max(h, 2*z0) / z0) / log(h_ref / z0)``.
 
@@ -157,16 +189,19 @@ def enhanced_log_law(
     to ``[min_coeff, max_coeff]`` — the paper uses ``[0.5, 3.0]`` so a
     single pathological pixel can't blow up a whole batch.
     """
-    wind = np.asarray(wind_10m, dtype=float)
-    z0_arr = np.asarray(z0, dtype=float)
-    h_ref_arr = np.asarray(h_ref, dtype=float)
+    xp_mod = _resolve_xp(xp)
+    wind = xp_mod.asarray(wind_10m, dtype=float)
+    z0_arr = xp_mod.asarray(z0, dtype=float)
+    h_ref_arr = xp_mod.asarray(h_ref, dtype=float)
 
-    h_target = np.maximum(float(target_height), 2.0 * z0_arr)
+    h_target = xp_mod.maximum(float(target_height), 2.0 * z0_arr)
+    # cupy does not support np.errstate; the suppression is NumPy-only
+    # and acts purely on warning filters, so it is safe to skip under xp=cupy.
     with np.errstate(divide="ignore", invalid="ignore"):
-        coeff = np.log(h_target / z0_arr) / np.log(h_ref_arr / z0_arr)
-    coeff = np.where(np.isfinite(coeff), coeff, 1.0)
-    coeff = np.clip(coeff, min_coeff, max_coeff)
-    return _finalise(wind * coeff, max_wind=max_wind)
+        coeff = xp_mod.log(h_target / z0_arr) / xp_mod.log(h_ref_arr / z0_arr)
+    coeff = xp_mod.where(xp_mod.isfinite(coeff), coeff, 1.0)
+    coeff = xp_mod.clip(coeff, min_coeff, max_coeff)
+    return _finalise(wind * coeff, max_wind=max_wind, xp=xp_mod)
 
 
 # ---------------------------------------------------------------------------
@@ -183,6 +218,7 @@ def stability_dependent(
     alpha_max: float = 0.3,
     stab_clip: tuple[float, float] = (0.8, 1.3),
     max_wind: float = DEFAULT_MAX_WIND,
+    xp=None,  # noqa: ANN001
 ) -> NDArray[np.float32]:
     """Power law with exponent modulated by surface wind speed.
 
@@ -195,13 +231,15 @@ def stability_dependent(
                            alpha_min, alpha_max)
         wind(h)     = wind_10m * (h / h_ref) ** alpha_stab
     """
-    wind = np.asarray(wind_10m, dtype=float)
+    xp_mod = _resolve_xp(xp)
+    wind = xp_mod.asarray(wind_10m, dtype=float)
     ratio = float(target_height) / float(reference_height)
 
-    stab = 1.2 - np.clip(wind / wind_scale, 0.0, 0.4)
-    alpha_s = np.clip(alpha_base * np.clip(stab, stab_clip[0], stab_clip[1]),
-                      alpha_min, alpha_max)
-    return _finalise(wind * np.power(ratio, alpha_s), max_wind=max_wind)
+    stab = 1.2 - xp_mod.clip(wind / wind_scale, 0.0, 0.4)
+    alpha_s = xp_mod.clip(alpha_base * xp_mod.clip(stab, stab_clip[0], stab_clip[1]),
+                          alpha_min, alpha_max)
+    return _finalise(wind * xp_mod.power(ratio, alpha_s),
+                     max_wind=max_wind, xp=xp_mod)
 
 
 # ---------------------------------------------------------------------------
@@ -219,6 +257,7 @@ def roughness_adaptive(
     rough_alpha: float = 0.25,
     reference_height: float = DEFAULT_REFERENCE_HEIGHT,
     max_wind: float = DEFAULT_MAX_WIND,
+    xp=None,  # noqa: ANN001
 ) -> NDArray[np.float32]:
     """Pick a per-regime formulation for each cell.
 
@@ -231,17 +270,23 @@ def roughness_adaptive(
     all-true); the three outputs of :func:`enhanced_power_law` and
     :func:`enhanced_log_law` must share the shape of ``wind_10m``.
     """
-    wind = np.asarray(wind_10m, dtype=float)
-    el = np.asarray(enhanced_log, dtype=float)
-    ep = np.asarray(enhanced_power, dtype=float)
+    # ``rough_mask`` is kept in the signature for API clarity but not used:
+    # the ``smooth → moderate → else-is-rough`` fallthrough in ``xp.where``
+    # below makes it implicit.
+    _ = rough_mask
+
+    xp_mod = _resolve_xp(xp)
+    wind = xp_mod.asarray(wind_10m, dtype=float)
+    el = xp_mod.asarray(enhanced_log, dtype=float)
+    ep = xp_mod.asarray(enhanced_power, dtype=float)
 
     ratio = float(target_height) / float(reference_height)
     rough_output = wind * (ratio ** float(rough_alpha))
 
     # Broadcast the (ny, nx) masks across the leading time axis when
-    # wind is 3-D.  np.where does this for us.
-    result = np.where(smooth_mask, el, np.where(moderate_mask, ep, rough_output))
-    return _finalise(result, max_wind=max_wind)
+    # wind is 3-D.  xp.where does this for us.
+    result = xp_mod.where(smooth_mask, el, xp_mod.where(moderate_mask, ep, rough_output))
+    return _finalise(result, max_wind=max_wind, xp=xp_mod)
 
 
 # ---------------------------------------------------------------------------
@@ -258,6 +303,7 @@ def hybrid_power_log(
     weight_min: float = 0.1,
     weight_max: float = 0.9,
     max_wind: float = DEFAULT_MAX_WIND,
+    xp=None,  # noqa: ANN001
 ) -> NDArray[np.float32]:
     """Convex blend of enhanced-log and enhanced-power predictions.
 
@@ -277,15 +323,17 @@ def hybrid_power_log(
     Thresholds / constants match the paper's ``_extrapolate_cpu``
     hybrid branch exactly.
     """
-    wind = np.asarray(wind_10m, dtype=float)
-    el = np.asarray(enhanced_log, dtype=float)
-    ep = np.asarray(enhanced_power, dtype=float)
-    z0_arr = np.asarray(z0, dtype=float)
+    xp_mod = _resolve_xp(xp)
+    wind = xp_mod.asarray(wind_10m, dtype=float)
+    el = xp_mod.asarray(enhanced_log, dtype=float)
+    ep = xp_mod.asarray(enhanced_power, dtype=float)
+    z0_arr = xp_mod.asarray(z0, dtype=float)
 
     w = (
         0.5
-        + 0.3 * np.clip(wind / wind_scale, 0.0, 1.0)
-        + 0.2 * np.clip(1.0 - np.log10(np.clip(z0_arr / z0_scale, 0.1, 100.0)), 0.0, 1.0)
+        + 0.3 * xp_mod.clip(wind / wind_scale, 0.0, 1.0)
+        + 0.2 * xp_mod.clip(1.0 - xp_mod.log10(xp_mod.clip(z0_arr / z0_scale, 0.1, 100.0)),
+                            0.0, 1.0)
     )
-    w = np.clip(w, weight_min, weight_max)
-    return _finalise(w * el + (1.0 - w) * ep, max_wind=max_wind)
+    w = xp_mod.clip(w, weight_min, weight_max)
+    return _finalise(w * el + (1.0 - w) * ep, max_wind=max_wind, xp=xp_mod)

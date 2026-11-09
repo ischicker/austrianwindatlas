@@ -20,7 +20,12 @@ Submodules:
 from __future__ import annotations
 
 from . import formulations, roughness
-from .extrapolator import METHOD_NAMES, ExtrapolationConfig, MultiHeightExtrapolator
+from .extrapolator import (
+    HAS_CUPY,
+    METHOD_NAMES,
+    ExtrapolationConfig,
+    MultiHeightExtrapolator,
+)
 from .formulations import (
     DEFAULT_CLASSIC_ALPHA,
     DEFAULT_CLASSIC_Z0,
@@ -72,6 +77,7 @@ __all__ = [
     "roughness_adaptive",
     "hybrid_power_log",
     # extrapolator
+    "HAS_CUPY",
     "METHOD_NAMES",
     "ExtrapolationConfig",
     "MultiHeightExtrapolator",

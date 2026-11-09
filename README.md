@@ -1,6 +1,7 @@
 # Austrian Windatlas
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ischicker/austrianwindatlas/blob/main/notebooks/01_synthetic_end_to_end.ipynb)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.PENDING.svg)](https://doi.org/10.5281/zenodo.PENDING)
 
 Observation-constrained hourly wind climatology for Austria —
 reference implementation and companion library to Schicker et al.
@@ -14,11 +15,11 @@ used in the paper (54 withheld TAWES stations, 251 SCADA turbines,
 NEWA comparison, spectral + Weibull + spread-calibration
 diagnostics).
 
-> **Status:** skeleton. The method modules land one PR at a time;
-> the day-1 commit contains only the repo layout, licence,
-> environments, Docker image, path handling and CI. See
-> `AWA_TRANSITION.md` in the paper repo for the per-file port
-> plan.
+> **Status: v0.1.0 feature-complete** — all nine Stage-1 methods
+> ported (Amato is a stub pending upstream licence), all seven
+> Stage-2 formulations with optional cupy GPU dispatch, full
+> validation harness, four runnable examples, 500+ tests passing.
+> See the issue tracker on GitHub for the v1.0 roadmap.
 
 ## Install
 
@@ -86,5 +87,26 @@ pending an upstream licence (see `docs/amato.md`).
 
 ## Citing
 
-See `CITATION.cff` for both the software citation and the paper
-citation.
+Both the software release and the companion paper should be cited.
+
+**Software** — pin a specific version from Zenodo (the DOI badge at
+the top of this README resolves to the latest release):
+
+```bibtex
+@software{austrianwindatlas,
+  title   = {Austrian Windatlas},
+  author  = {Schicker, Irene and Andre, Konrad and Lexer, Annemarie
+             and Janisch, Stefan and Bisko, Nina},
+  year    = {2026},
+  doi     = {10.5281/zenodo.PENDING},
+  url     = {https://github.com/ischicker/austrianwindatlas},
+  version = {0.1.0}
+}
+```
+
+**Paper** — Schicker et al. (2026, *Climate*, MS 4613178); see
+[`CITATION.cff`](CITATION.cff) for the full BibTeX.
+
+Tools that understand the Citation File Format (GitHub's "Cite this
+repository" button, Zotero, …) will pull the author list and DOI
+automatically from `CITATION.cff`.

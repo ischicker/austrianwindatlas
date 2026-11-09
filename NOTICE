@@ -61,3 +61,17 @@ Datasets referenced in the examples (not redistributed)
     Licence: as per NEWA terms of use.
     Role: hub-height benchmark; fetched via the WPS API in
     `austrianwindatlas.io.newa`.
+
+=============================================================================
+Citing this software
+
+Software DOI (archived on Zenodo): 10.5281/zenodo.PENDING
+    The concept DOI resolves to the latest version; cite a specific
+    release by appending the release-DOI from the Zenodo page.
+    Populated by Zenodo's GitHub integration when the v0.1.0 tag was
+    released; see CITATION.cff and docs/RELEASING.md.
+
+Companion paper: Schicker et al. (2026), 'The Austrian Windatlas',
+    Climate (MDPI), MS 4613178; DOI assigned on publication.
+    Both the software and the paper should be cited — see the
+    'Citing' section in README.md for ready-to-paste BibTeX.

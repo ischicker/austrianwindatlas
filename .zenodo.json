@@ -1,0 +1,54 @@
+{
+  "title": "Austrian Windatlas",
+  "description": "Observation-constrained hourly wind climatology for Austria — reference implementation and companion library to Schicker et al. (2026, Climate). Nine Stage-1 interpolation families (IDW, RK-IDW, KED, MLR, GAM/BAMLSS, QN-GNN-CNN, Amato, Enhanced-MAE, Enhanced-WMSE) under a common EOF/rPCA framework, seven Stage-2 hub-height extrapolation formulations (power / log / enhanced / stability / adaptive / hybrid / ensemble), plus the validation harness (RMSE / bias / r / threshold metrics / Weibull / capacity factor) used in the paper.",
+  "upload_type": "software",
+  "creators": [
+    {
+      "name": "Schicker, Irene",
+      "affiliation": "GeoSphere Austria",
+      "orcid": "0000-0001-6401-2412"
+    },
+    {
+      "name": "Andre, Konrad",
+      "affiliation": "GeoSphere Austria"
+    },
+    {
+      "name": "Lexer, Annemarie",
+      "affiliation": "GeoSphere Austria"
+    },
+    {
+      "name": "Janisch, Stefan",
+      "affiliation": "4ward Energy Research GmbH"
+    },
+    {
+      "name": "Bisko, Nina",
+      "affiliation": "4ward Energy Research GmbH"
+    }
+  ],
+  "license": "MIT",
+  "access_right": "open",
+  "keywords": [
+    "wind climatology",
+    "wind atlas",
+    "Austria",
+    "Alpine terrain",
+    "wind energy",
+    "spatial interpolation",
+    "hub-height extrapolation",
+    "observation-constrained",
+    "EOF",
+    "rPCA",
+    "TAWES",
+    "INCA",
+    "Python",
+    "PyTorch",
+    "xarray"
+  ],
+  "related_identifiers": [
+    {
+      "identifier": "https://github.com/ischicker/austrianwindatlas",
+      "relation": "isSupplementTo",
+      "scheme": "url"
+    }
+  ]
+}

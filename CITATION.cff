@@ -26,7 +26,15 @@ authors:
 repository-code: "https://github.com/ischicker/austrianwindatlas"
 license: MIT
 version: 0.1.0
-date-released: "2026-11-03"
+date-released: "2026-11-09"
+# DOI is populated by Zenodo's GitHub integration when the v0.1.0 tag
+# is released.  The sentinel 10.5281/zenodo.PENDING is replaced in a
+# follow-up commit once Zenodo has minted the DOI (see docs/RELEASING.md).
+doi: "10.5281/zenodo.PENDING"
+identifiers:
+  - type: doi
+    value: "10.5281/zenodo.PENDING"
+    description: "Zenodo concept DOI (all versions of the software)"
 keywords:
   - wind climatology
   - wind atlas

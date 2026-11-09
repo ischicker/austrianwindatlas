@@ -1,0 +1,13 @@
+{
+  "example_01": {
+    "median_seconds": 4.5,
+    "best_seconds": 4.0,
+    "runs": 3,
+    "slowdown_threshold": 1.5,
+    "updated_at": "2026-11-09T00:00:00Z",
+    "host": "github-actions-runner",
+    "python_version": "3.11",
+    "git_sha": null,
+    "notes": "Baseline tuned for GitHub free-tier ubuntu-latest runners. Local dev hosts typically see ~2s; CI should stay under 6.75s (= 4.5 * 1.5). Refresh via `python scripts/benchmark_check.py --baseline tests/benchmarks/baseline.json --update` when the hardware changes."
+  }
+}

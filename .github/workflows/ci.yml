@@ -36,7 +36,7 @@ jobs:
           pip install -e ".[dev]"
 
       - name: Ruff lint
-        run: ruff check src tests examples
+        run: ruff check src tests examples scripts
 
       - name: Pytest (unit)
         run: pytest tests/unit -q
@@ -70,3 +70,36 @@ jobs:
             echo "notebooks/ is out of sync with examples/. Run 'python notebooks/build_notebooks.py' and commit."
             exit 1
           }
+
+  benchmark:
+    name: Benchmark regression
+    # Only run on pushes to main (not PRs, not forks).  Benchmark noise on
+    # PR feedback is more irritating than useful.  workflow_dispatch lets
+    # maintainers refresh the baseline manually.
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    # Opt-in while we shake out runner-to-runner jitter.  Flip to
+    # required after a week of green runs (see issue #3).
+    continue-on-error: true
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install the package (dev extras)
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Run benchmark check
+        run: |
+          python scripts/benchmark_check.py \
+            --baseline tests/benchmarks/baseline.json \
+            --benchmark example_01 \
+            --runs 3 \
+            --warmup
